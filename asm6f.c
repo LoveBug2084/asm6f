@@ -182,6 +182,7 @@ void processfile(FILE*,char*);
 void showhelp(void);
 void output(byte*,int,int);
 void filler(int,char**);
+void print(label*,char**);
 
 // [freem addition (from asm6_sonder.c)]
 int filepos=0;
@@ -406,6 +407,7 @@ struct {
 		{"IGNORENL",ignorenl},
 		{"ENDINL",endinl},
 		{"FILLVALUE",fillval},
+		{"PRINT",print},
 		{"DL",dl},
 		{"DH",dh},
 		{"ERROR",make_error},
@@ -672,8 +674,8 @@ bin:		j=*s;
 		} else
 			errmsg=NotANumber;
 	} else {	//label---------------
-		char *nm = gvline; // lovebug : strip '~' global-prefix on lookup
-		if(*nm=='~') nm++;
+		char *nm = gvline; // lovebug : strip '?' global-prefix on lookup
+		if(*nm=='?') nm++;
 		p=findlabel(nm);
 		if(!p) {//label doesn't exist (yet?)
 			needanotherpass=dependant=1;
@@ -997,7 +999,7 @@ int getlabel(char *dst,char **src) {
 		if(!*s)//just ++.. or --.., no text
 			return 1;
 	}
-	if(c=='~') s++; // lovebug : '~' global-label prefix
+	if(c=='?') s++; // lovebug : '?' global-label prefix
 	c=*s;
 	if(c==LOCALCHAR || c=='_' || (c>='A' && c<='Z') || (c>='a' && c<='z')) {//label can start with these
 		return 1;
@@ -1385,7 +1387,7 @@ void addlabel(char *word, int local) {
 	int forceGlobal = 0;
 	label *p;
 
-	if(c=='~') { // lovebug : '~' means: force this label global
+	if(c=='?') { // lovebug : '?' means: force this label global
 		forceGlobal = 1;
 		word++;
 		c = *word;
@@ -2837,6 +2839,32 @@ void endinl(label *id, char **next) {
 void fillval(label *id,char **next) {
 	dependant=0;
 	defaultfiller=eval(next,WHOLEEXP);
+}
+
+void print(label *id, char **next) {
+	char expr[LINEMAX];
+	char *s=*next;
+	int val;
+
+	// Copy operand text for display, before eval() consumes it
+	s+=strspn(s,whitesp);
+	strncpy(expr,s,LINEMAX-1);
+	expr[LINEMAX-1]=0;
+
+	dependant=0;
+	val=eval(next,WHOLEEXP);
+	if(errmsg)
+		return;
+	if(dependant)
+		return;
+
+	// Trim trailing whitespace/newline
+	{
+		char *e=strend(expr,whitesp);
+		*e=0;
+	}
+
+	printf("%s = $%04X (%d)\n", expr, (unsigned)val, val);
 }
 
 void make_error(label *id,char **next) {
