@@ -2871,12 +2871,20 @@ void print(label *id, char **next) {
 	char *s=*next;
 	int val;
 
-	// Copy operand text for display, before eval() consumes it
-	s+=strspn(s,whitesp);
-	strncpy(expr,s,LINEMAX-1);
-	expr[LINEMAX-1]=0;
+// Copy operand text for display, before eval() consumes it
+ 	s+=strspn(s,whitesp);
+ 	strncpy(expr,s,LINEMAX-1);
+ 	expr[LINEMAX-1]=0;
 
-	dependant=0;
+ 	// Strip '?' global prefix from identifiers in display string
+ 	for (char *p = expr; *p; p++) {
+ 		if (*p == '?') {
+ 			memmove(p, p + 1, strlen(p) + 1);
+ 			p--;
+ 		}
+ 	}
+
+ 	dependant=0;
 	val=eval(next,WHOLEEXP);
 	if(errmsg)
 		return;
